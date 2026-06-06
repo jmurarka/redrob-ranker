@@ -1,0 +1,8 @@
+# Ignored files
+candidates.jsonl
+.pytest_cache/
+__pycache__/
+.gradio/
+*.log
+.env
+.ipynb_checkpoints/

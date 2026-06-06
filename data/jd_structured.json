@@ -1,0 +1,25 @@
+{
+  "role_category": "ML_ENGINEER",
+  "seniority": "Principal",
+  "experience_range": {
+    "min": 5,
+    "max": 9
+  },
+  "required_skills": [
+    "embeddings",
+    "vector database",
+    "hybrid search",
+    "rag",
+    "ranking eval",
+    "python",
+    "fine-tuning",
+    "llm",
+    "a/b testing"
+  ],
+  "preferred_skills": [],
+  "disqualifying_signals": [
+    "consulting_only"
+  ],
+  "industry_domain": "AI / HR-Tech",
+  "weight_profile": "ML_ENGINEER"
+}

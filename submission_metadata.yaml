@@ -1,0 +1,43 @@
+team_name: "Antigravity"
+
+primary_contact:
+  name: "Antigravity AI"
+  email: "antigravity@example.com"
+  phone: "+91-9999999999"
+
+team_members:
+  - name: "Antigravity AI"
+    email: "antigravity@example.com"
+    role: "ML Engineer"
+
+github_repo: "https://github.com/jmurarka/redrob-ranker"
+sandbox_link: "https://huggingface.co/spaces/example/redrob-ranker"
+reproduce_command: "python rank.py --candidates candidates.jsonl --out submission.csv"
+
+compute:
+  platform: "Local PC, Windows 11"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.12.9"
+  os: "Windows 11"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 26
+
+ai_tools_used:
+  - "Gemini"
+  - "Claude"
+
+ai_usage_summary: |
+  Used Gemini 3.5 Flash via Antigravity pair-programming interface to design the rule-based funnel and test suite.
+
+methodology_summary: |
+  TalentMind AI v2 uses a hybrid two-phase architecture. Offline precomputation performs Stage 0 QA honeypot filtering, extracts multi-signal features (career relevance, behavior, trust, skills, experience), and encodes candidate profiles using local sentence-transformers (all-MiniLM-L6-v2). Online ranking runs a multi-path recall union (semantic + career + behavioral) to recall candidates, scores them using a profile-specific blended model (ML_ENGINEER), breaks ties with candidate ID ascending, and generates non-hallucinated explanations. CPU ranking runs in <1 second.
+
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
