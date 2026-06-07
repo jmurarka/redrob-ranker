@@ -1,13 +1,13 @@
 team_name: "XYZ"
 
 primary_contact:
-  name: "Jhanvi Murarka"
-  email: "jhanvimurarka@gmail.com"
+  name: "[NAME]"
+  email: "[EMAIL]"
   phone: "+91-9999999999"
 
 team_members:
-  - name: "Antigravity AI"
-    email: "antigravity@example.com"
+  - name: "[NAME]"
+    email: "[EMAIL]"
     role: "ML Engineer"
 
 github_repo: "https://github.com/jmurarka/redrob-ranker"
