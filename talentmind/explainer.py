@@ -36,6 +36,7 @@ def generate_reasoning(f: dict, rank: int, score: float, sem: float) -> str:
     else:
         primary = f"{yoe:.0f}-year {title}; adjacent skills present, below primary threshold."
 
-    secondary = (f"Note: {concern}." if concern
-                 else f"Growth Potential: {growth.capitalize()}.")
+    secondary = f"Growth Potential: {growth.capitalize()}."
+    if concern:
+        secondary += f" Note: {concern}."
     return (primary + " " + secondary).strip()[:500]

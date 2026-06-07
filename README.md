@@ -12,7 +12,10 @@ A production-grade, CPU-only, fast candidate ranking system designed to rank 100
 
 ## Reproducing the Submission
 
-To run the candidate ranker on the candidate pool and generate the final ranked CSV, run the following single command from the repository root:
+> [!IMPORTANT]
+> precompute.py must be run before rank.py. The data/ directory is a required runtime dependency.
+
+To run the candidate ranker on the candidate pool and generate the final ranked CSV, run the following command from the repository root:
 
 ```bash
 python rank.py --candidates ../India_runs_data_and_ai_challenge/candidates.jsonl --out ./submission.csv

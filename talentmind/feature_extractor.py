@@ -168,7 +168,7 @@ def extract_behavior_features(signals: dict) -> dict:
 
 
 def extract_trust_features(candidate: dict) -> dict:
-    signals = candidate.get("redrob_signals", {})
+    signals = candidate.get("redrob_signals") or {}
     career = candidate.get("career_history", [])
     profile = candidate.get("profile", {})
     skills = candidate.get("skills", [])
@@ -207,7 +207,7 @@ def extract_trust_features(candidate: dict) -> dict:
 def extract_skill_features(candidate: dict) -> dict:
     skills = candidate.get("skills", [])
     career = candidate.get("career_history", [])
-    signals = candidate.get("redrob_signals", {})
+    signals = candidate.get("redrob_signals") or {}
 
     raw = 0.0
     top_skill_name = ""
@@ -267,7 +267,8 @@ def extract_experience_features(candidate: dict) -> dict:
 def extract_all_features(candidate: dict) -> dict:
     f = {}
     f.update(extract_career_features(candidate))
-    f.update(extract_behavior_features(candidate.get("redrob_signals", {})))
+    signals = candidate.get("redrob_signals") or {}
+    f.update(extract_behavior_features(signals))
     f.update(extract_trust_features(candidate))
     f.update(extract_skill_features(candidate))
     f.update(extract_experience_features(candidate))

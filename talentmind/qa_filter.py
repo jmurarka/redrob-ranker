@@ -7,7 +7,7 @@ def is_invalid(candidate: dict) -> tuple[bool, str]:
     profile = candidate.get("profile", {})
     career = candidate.get("career_history", [])
     skills = candidate.get("skills", [])
-    signals = candidate.get("redrob_signals", {})
+    signals = candidate.get("redrob_signals") or {}
 
     claimed_yoe = float(profile.get("years_of_experience", 0))
     career_months = sum(r.get("duration_months", 0) for r in career)

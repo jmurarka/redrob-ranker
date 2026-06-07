@@ -12,12 +12,15 @@ import numpy as np
 from talentmind.config import (
     DATA_DIR, WEIGHT_PROFILES, DEFAULT_WEIGHT_PROFILE,
     SEMANTIC_RECALL_K, CAREER_RECALL_K, BEHAVIORAL_RECALL_K,
+    LOCAL_MODEL_PATH,
 )
 from talentmind.embedder import embed_single, cosine_top_k
 from talentmind.jd_intelligence import parse_jd
 from talentmind.explainer import generate_reasoning
 
 def main():
+    assert Path(LOCAL_MODEL_PATH).exists(), \
+        f"Local model not found at {LOCAL_MODEL_PATH}. Run precompute.py first."
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidates", required=True)
     parser.add_argument("--out", required=True)
@@ -80,7 +83,7 @@ def main():
     results.sort(key=lambda x: (-x[0], x[1]["candidate_id"]))
     top100 = results[:100]
 
-    scores = [r[0] for r in top100]
+    scores = [round(r[0], 6) for r in top100]
     assert all(scores[i] >= scores[i+1] for i in range(99)), \
         "CRITICAL: Score monotonicity violated"
 

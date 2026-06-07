@@ -120,3 +120,34 @@ def test_generate_reasoning():
     assert "Pinecone" in r
     assert "6-year" in r
     assert "Growth Potential: High" in r
+
+def test_redrob_signals_none():
+    cand = {
+        "candidate_id": "CAND_NONE_SIGNALS",
+        "profile": {"years_of_experience": 5.0, "current_title": "ML Engineer"},
+        "career_history": [{"company": "Google", "duration_months": 60, "title": "ML Engineer", "company_size": "100-500", "description": "built model in production"}],
+        "skills": [{"name": "Python", "proficiency": "expert", "duration_months": 36, "endorsements": 10}],
+        "redrob_signals": None
+    }
+    # Should not raise AttributeError
+    invalid, reason = is_invalid(cand)
+    assert not invalid
+    
+    feats = extract_all_features(cand)
+    assert feats["behavioral_score"] > 0.0
+    assert feats["trust_score"] > 0.0
+
+def test_generate_reasoning_with_concern():
+    feat = {
+        "current_title": "AI Engineer",
+        "years_of_experience": 6.0,
+        "top_career_note": "AI Engineer at Initech",
+        "has_production_evidence": True,
+        "growth_potential": "HIGH",
+        "top_skill_name": "Pinecone",
+        "notice_period_days": 120  # will trigger concern
+    }
+    r = generate_reasoning(feat, rank=50, score=0.75, sem=0.8)
+    assert "Growth Potential: High" in r
+    assert "Note: notice period 120 days" in r
+
