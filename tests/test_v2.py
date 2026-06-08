@@ -151,3 +151,42 @@ def test_generate_reasoning_with_concern():
     assert "Growth Potential: High" in r
     assert "Note: notice period 120 days" in r
 
+
+def test_career_trajectory_and_score_tied_explainer():
+    from talentmind.career_trajectory import calculate_growth_score, CareerTrajectoryAnalyzer
+    career = [
+        {"title": "Senior AI Engineer", "company": "Google", "duration_months": 24, "company_size": "10001+", "description": "led team, mentored junior devs, managed scaling"},
+        {"title": "AI Engineer", "company": "Google", "duration_months": 24, "company_size": "10001+", "description": "built model in production"},
+        {"title": "Junior Developer", "company": "Startup", "duration_months": 12, "company_size": "1-10", "description": "wrote code"}
+    ]
+    
+    analyzer = CareerTrajectoryAnalyzer()
+    growth = calculate_growth_score(career, has_production_evidence=True)
+    leadership = analyzer.compute_leadership_scope(career)
+    trajectory = analyzer.model_trajectory(career)
+    
+    assert 0.0 <= growth <= 1.0
+    assert 0.0 <= leadership <= 1.0
+    assert 0.0 <= trajectory <= 1.0
+    
+    # Verify explainer with decomposition
+    feat = {
+        "current_title": "Senior AI Engineer",
+        "years_of_experience": 5.0,
+        "top_skill_name": "PyTorch",
+        "growth_potential": "HIGH",
+        "raw_signals": {
+            "semantic": 0.9, "career": 0.8, "skill": 0.85, "experience": 0.9, "behavioral": 0.7, "trust": 0.9, "growth": 0.8
+        },
+        "weighted_signals": {
+            "semantic": 0.171, "career": 0.19, "skill": 0.1615, "experience": 0.0855, "behavioral": 0.0665, "trust": 0.0855, "growth": 0.04
+        }
+    }
+    
+    r = generate_reasoning(feat, rank=3, score=0.800, sem=0.9)
+    assert "Ranked #3" in r
+    assert "career" in r
+    assert "semantic" in r
+    assert "Senior AI Engineer" in r
+    assert "PyTorch" in r
+

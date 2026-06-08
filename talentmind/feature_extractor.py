@@ -39,6 +39,7 @@ def extract_career_features(candidate: dict) -> dict:
         return {
             "career_score": 0.10, "consulting_fraction": 0.0,
             "has_production_evidence": False, "growth_potential": "LOW",
+            "growth_score": 0.20, "leadership_scope": 0.0,
             "top_career_note": "",
         }
 
@@ -53,6 +54,7 @@ def extract_career_features(candidate: dict) -> dict:
         return {
             "career_score": 0.05, "consulting_fraction": 1.0,
             "has_production_evidence": False, "growth_potential": "LOW",
+            "growth_score": 0.20, "leadership_scope": 0.0,
             "top_career_note": "entire career in IT services",
         }
 
@@ -90,7 +92,7 @@ def extract_career_features(candidate: dict) -> dict:
         elif duration > 24:
             raw += 0.15
 
-    career_score = max(0.0, min(1.0, raw / 8.0))
+    base_career_score = max(0.0, min(1.0, raw / 8.0))
 
     # Growth Potential (AUXILIARY — never enters final_score)
     titles_chron = [r.get("title", "") for r in reversed(career)]
@@ -103,12 +105,53 @@ def extract_career_features(candidate: dict) -> dict:
     else:
         growth_potential = "LOW"
 
+    from talentmind.career_trajectory import calculate_growth_score, CareerTrajectoryAnalyzer
+    analyzer = CareerTrajectoryAnalyzer()
+    promotions = analyzer.detect_promotions(career)
+    leadership_scope = analyzer.compute_leadership_scope(career)
+    trajectory_score = analyzer.model_trajectory(career)
+
+    # Advanced career signals
+    promotion_velocity = analyzer.compute_promotion_velocity(career)
+    specialization_consistency = analyzer.compute_specialization_consistency(career)
+    leadership_growth = analyzer.compute_leadership_growth(career)
+    tenure_stability = analyzer.compute_tenure_stability(career)
+    domain_focus_score = analyzer.compute_domain_focus_score(career)
+
+    # Sub-signal weights:
+    # - base_career_score: 30% (stability, company tiers, and duration)
+    # - tenure_stability: 15% (average tenure)
+    # - promotion_velocity: 15% (vertical growth rate)
+    # - specialization_consistency: 15% (industry title alignment)
+    # - leadership_growth: 15% (management scope and seniority delta)
+    # - domain_focus_score: 10% (domain exposure)
+    career_intelligence_score = float(
+        0.30 * base_career_score +
+        0.15 * tenure_stability +
+        0.15 * min(1.0, promotion_velocity / 0.5) +
+        0.15 * specialization_consistency +
+        0.15 * leadership_growth +
+        0.10 * domain_focus_score
+    )
+    career_score = max(0.0, min(1.0, career_intelligence_score))
+
+    skills = candidate.get("skills", [])
+    growth_score = calculate_growth_score(career, has_production_evidence, skills)
+
     return {
         "career_score": career_score,
         "consulting_fraction": consulting_fraction,
         "has_production_evidence": has_production_evidence,
         "growth_potential": growth_potential,
+        "growth_score": growth_score,
+        "leadership_scope": leadership_scope,
         "top_career_note": top_career_note,
+        "promotion_velocity": promotion_velocity,
+        "specialization_consistency": specialization_consistency,
+        "leadership_growth": leadership_growth,
+        "tenure_stability": tenure_stability,
+        "domain_focus_score": domain_focus_score,
+        "career_intelligence_score": career_intelligence_score,
     }
 
 
@@ -274,4 +317,8 @@ def extract_all_features(candidate: dict) -> dict:
     f.update(extract_experience_features(candidate))
     f["candidate_id"] = candidate["candidate_id"]
     f["current_title"] = candidate.get("profile", {}).get("current_title", "Engineer")
+    
+    # Store skills and titles for symmetric matching
+    f["candidate_skills"] = [s.get("name", "").lower() for s in candidate.get("skills", [])]
+    f["candidate_titles"] = [r.get("title", "").lower() for r in candidate.get("career_history", [])]
     return f

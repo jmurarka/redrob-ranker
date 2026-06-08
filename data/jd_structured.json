@@ -1,25 +1,105 @@
 {
-  "role_category": "ML_ENGINEER",
-  "seniority": "Principal",
+  "required_skills": [
+    "mrr",
+    "embeddings",
+    "fine-tun",
+    "qdrant",
+    "lora",
+    "a/b testing",
+    "elasticsearch",
+    "qlora",
+    "langchain",
+    "peft",
+    "a/b test",
+    "hybrid retrieval",
+    "embedding",
+    "weaviate",
+    "pinecone",
+    "sentence-transformer",
+    "rag",
+    "milvus",
+    "hybrid search",
+    "ranking eval",
+    "bm25",
+    "llm",
+    "opensearch",
+    "faiss",
+    "vector database",
+    "ndcg",
+    "python",
+    "fine-tuning"
+  ],
+  "preferred_skills": [],
+  "seniority_level": "Principal",
   "experience_range": {
     "min": 5,
     "max": 9
   },
-  "required_skills": [
-    "embeddings",
-    "vector database",
-    "hybrid search",
-    "rag",
-    "ranking eval",
-    "python",
-    "fine-tuning",
-    "llm",
-    "a/b testing"
+  "business_objective": "We're looking for people who understood retrieval and ranking before it became fashionable.",
+  "team_context": "Reports to Engineering Lead. Collaborates with cross-functional team.",
+  "industry": "Hr-Tech, Ai",
+  "responsibility_list": [
+    "Design and build scalable engineering systems."
   ],
-  "preferred_skills": [],
+  "implicit_signals": [
+    "Mentorship required",
+    "Roadmap ownership"
+  ],
+  "team_structure": "Reports to Engineering Lead. Collaborates with cross-functional team.",
+  "responsibility_hierarchy": [
+    "Design and build scalable engineering systems."
+  ],
+  "industry_context": "Hr-Tech, Ai",
+  "implicit_seniority_signals": [
+    "Mentorship required",
+    "Roadmap ownership"
+  ],
+  "hard_requirements": [
+    "mrr",
+    "embeddings",
+    "fine-tun",
+    "qdrant",
+    "lora",
+    "a/b testing",
+    "elasticsearch",
+    "qlora",
+    "langchain",
+    "peft",
+    "a/b test",
+    "hybrid retrieval",
+    "embedding",
+    "weaviate",
+    "pinecone",
+    "sentence-transformer",
+    "rag",
+    "milvus",
+    "hybrid search",
+    "ranking eval",
+    "bm25",
+    "llm",
+    "opensearch",
+    "faiss",
+    "vector database",
+    "ndcg",
+    "python",
+    "fine-tuning"
+  ],
+  "nice_to_have": [],
+  "leadership_signals": [
+    "mentorship",
+    "ownership",
+    "management"
+  ],
+  "responsibility_categories": [
+    "design",
+    "build",
+    "deploy"
+  ],
+  "role_category": "ML_ENGINEER",
+  "seniority": "Principal",
   "disqualifying_signals": [
     "consulting_only"
   ],
-  "industry_domain": "AI / HR-Tech",
+  "industry_domain": "Hr-Tech, Ai",
   "weight_profile": "ML_ENGINEER"
 }

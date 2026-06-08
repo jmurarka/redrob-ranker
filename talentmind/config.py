@@ -5,12 +5,12 @@ SUBMISSION_DATE = date(2026, 6, 5)
 DATA_DIR = Path("data")
 
 WEIGHT_PROFILES = {
-    "ML_ENGINEER":      {"semantic": 0.20, "career": 0.25, "skill": 0.20,
-                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10},
-    "DATA_ENGINEER":    {"semantic": 0.15, "career": 0.25, "skill": 0.25,
-                         "experience": 0.10, "behavioral": 0.10, "trust": 0.15},
-    "BACKEND_ENGINEER": {"semantic": 0.15, "career": 0.30, "skill": 0.20,
-                         "experience": 0.15, "behavioral": 0.10, "trust": 0.10},
+    "ML_ENGINEER":      {"semantic": 0.20, "career": 0.24, "skill": 0.19,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
+    "DATA_ENGINEER":    {"semantic": 0.15, "career": 0.24, "skill": 0.24,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
+    "BACKEND_ENGINEER": {"semantic": 0.15, "career": 0.29, "skill": 0.19,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
 }
 DEFAULT_WEIGHT_PROFILE = "ML_ENGINEER"
 
