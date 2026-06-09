@@ -1,18 +1,18 @@
-team_name: "XYZ"
+team_name: "TODO_REGISTERED_TEAM_NAME"
 
 primary_contact:
-  name: "[NAME]"
-  email: "[EMAIL]"
-  phone: "+91-9999999999"
+  name: "TODO_PRIMARY_CONTACT_NAME"
+  email: "TODO_PRIMARY_CONTACT_EMAIL"
+  phone: "TODO_PRIMARY_CONTACT_PHONE"
 
 team_members:
-  - name: "[NAME]"
-    email: "[EMAIL]"
+  - name: "TODO_TEAM_MEMBER_NAME"
+    email: "TODO_TEAM_MEMBER_EMAIL"
     role: "ML Engineer"
 
 github_repo: "https://github.com/jmurarka/redrob-ranker"
-sandbox_link: "https://huggingface.co/spaces/example/redrob-ranker"
-reproduce_command: "python rank.py --candidates candidates.jsonl --out submission.csv"
+sandbox_link: "TODO_HOSTED_SANDBOX_URL"
+reproduce_command: "python rank.py --candidates candidates.jsonl --jd job_description.txt --out submission.csv"
 
 compute:
   platform: "Local PC, Windows 11"
@@ -28,29 +28,30 @@ compute:
 ai_tools_used:
   - "Gemini"
   - "Claude"
+  - "ChatGPT"
 
 ai_usage_summary: |
-  Used Gemini 3.5 Flash via Antigravity pair-programming interface to design the rule-based funnel, run final audits, and test suites.
+  Used AI coding assistance during development for architecture critique, bug
+  finding, documentation, and test/audit support. No hosted LLM/API calls are
+  used during ranking.
 
 methodology_summary: |
   TalentMind AI v2 is a multi-signal candidate intelligence engine combining
   semantic retrieval, career trajectory analysis, behavioral signal integration,
-  trust scoring, and growth potential classification. Offline precomputation
-  generates all-MiniLM-L6-v2 embeddings (Option B structured text: role +
-  top skills + career titles + summary excerpt) and structured feature vectors
-  for all QA-validated candidates. A Candidate Quality Assurance Layer runs
+  trust scoring, growth scoring, and location/logistics fit. Offline
+  precomputation generates all-MiniLM-L6-v2 embeddings and structured feature
+  vectors for QA-validated candidates. A Candidate Quality Assurance Layer runs
   before embedding generation to eliminate honeypots and impossible profiles
-  from the retrieval pool — not merely penalizing them in scoring. Runtime
-  ranking uses a three-path recall architecture (Top 2000 semantic + Top 500
-  career + Top 250 behavioral, union-deduplicated) to prevent strong candidates
-  from being excluded by any single signal, directly addressing the challenge's
-  hidden gems criterion. A six-component reranker (20% semantic, 25% career,
-  20% skill, 10% experience, 10% behavioral, 10% trust) with role-aware weight
-  profiles produces the final ranking. Growth Potential (High/Medium/Low),
-  derived from career title progression and production evidence, is exposed as
-  an auxiliary recruiter insight and reasoning label — not a ranking component —
-  to maintain full methodology defensibility. All explanations are generated
-  from verified candidate feature fields: zero hallucination by design.
+  from the retrieval pool, not merely penalize them in scoring. Runtime ranking
+  uses a three-path recall architecture (Top 2000 semantic + Top 500 career +
+  Top 250 behavioral, union-deduplicated) to prevent strong candidates from
+  being excluded by any single signal. An eight-component reranker (18%
+  semantic, 24% career, 18% skill, 10% experience, 10% behavioral, 10% trust,
+  5% growth, 5% logistics) with role-aware weight profiles produces the final
+  ranking. Growth Potential is both a small ranking component and a
+  recruiter-facing insight, while logistics explicitly accounts for the
+  Pune/Noida/India relocation constraints. All explanations are generated from
+  verified candidate feature fields: zero hallucination by design.
 
 precompute_required: true
 precompute_runtime_minutes: 20

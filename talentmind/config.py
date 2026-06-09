@@ -5,12 +5,15 @@ SUBMISSION_DATE = date(2026, 6, 5)
 DATA_DIR = Path("data")
 
 WEIGHT_PROFILES = {
-    "ML_ENGINEER":      {"semantic": 0.20, "career": 0.24, "skill": 0.19,
-                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
-    "DATA_ENGINEER":    {"semantic": 0.15, "career": 0.24, "skill": 0.24,
-                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
-    "BACKEND_ENGINEER": {"semantic": 0.15, "career": 0.29, "skill": 0.19,
-                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10, "growth": 0.05, "jd_match": 0.02},
+    "ML_ENGINEER":      {"semantic": 0.18, "career": 0.24, "skill": 0.18,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10,
+                         "growth": 0.05, "logistics": 0.05},
+    "DATA_ENGINEER":    {"semantic": 0.14, "career": 0.24, "skill": 0.22,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10,
+                         "growth": 0.05, "logistics": 0.05},
+    "BACKEND_ENGINEER": {"semantic": 0.14, "career": 0.28, "skill": 0.18,
+                         "experience": 0.10, "behavioral": 0.10, "trust": 0.10,
+                         "growth": 0.05, "logistics": 0.05},
 }
 DEFAULT_WEIGHT_PROFILE = "ML_ENGINEER"
 
@@ -47,6 +50,14 @@ CONSULTING_COMPANIES = frozenset({
 INDIA_PREFERRED = frozenset({
     "pune", "noida", "gurgaon", "gurugram", "faridabad", "delhi",
     "new delhi", "hyderabad", "mumbai", "bengaluru", "bangalore", "ncr",
+})
+
+INDIA_ACCEPTABLE = INDIA_PREFERRED | frozenset({
+    "chennai", "kolkata", "ahmedabad", "jaipur", "indore", "chandigarh",
+    "kochi", "cochin", "trivandrum", "thiruvananthapuram", "vizag",
+    "visakhapatnam", "coimbatore", "kerala", "tamil nadu", "andhra pradesh",
+    "rajasthan", "madhya pradesh", "west bengal", "gujarat", "punjab",
+    "haryana", "uttar pradesh", "karnataka", "maharashtra", "telangana",
 })
 
 # QA filter thresholds

@@ -157,7 +157,7 @@ def test_explanation_generation():
     
     assert "Top 9% semantic similarity" in reasoning
     assert "Top 6% career trajectory" in reasoning
-    assert "Engineer → Senior Engineer → Lead Engineer" in reasoning
+    assert "Engineer -> Senior Engineer -> Lead Engineer" in reasoning
     assert "PyTorch, Milvus, Python" in reasoning
     assert len(reasoning) <= 500
 

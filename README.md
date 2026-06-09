@@ -112,10 +112,10 @@ graph TD
 ```
 
 ### Upgrade 3: Growth Score Integration (`talentmind/config.py` & `rank.py`)
-*   **What was done**: Integrated a candidate's `growth_score` (representing promotion speed and skill acquisition rate over time) directly into the primary scoring weight vector.
+*   **What was done**: Integrated a candidate's `growth_score` (representing promotion speed and skill acquisition rate over time) and a `logistics_score` (location/relocation fit for Pune/Noida/India constraints) directly into the primary scoring weight vector.
 *   **How it was done**:
-    *   Allocated a strict **5% weight** to `growth_score`.
-    *   Adjusted the weight configuration profile to ensure the sum of all weights (`semantic`, `career`, `skill`, `experience`, `behavioral`, `trust`, `growth`) equals **exactly 1.0**.
+    *   Allocated a strict **5% weight** to `growth_score` and **5% weight** to `logistics_score`.
+    *   Adjusted the weight configuration profile to ensure the sum of all weights (`semantic`, `career`, `skill`, `experience`, `behavioral`, `trust`, `growth`, `logistics`) equals **exactly 1.0**.
     *   Added hard runtime assertions in `rank.py` validating weight vector normalization before reranking is executed.
 
 ### Upgrade 4: Symmetric Candidate-Job Matching (`rank.py`)
@@ -199,7 +199,7 @@ python precompute.py --candidates candidates.jsonl
 ### 4.3 Step 2: Run Reranking & Explanations (Phase 2)
 Reads the precomputed candidate cache and ranks all active candidates against the target Job Description:
 ```bash
-python rank.py --candidates candidates.jsonl --out submission.csv
+python rank.py --candidates candidates.jsonl --jd job_description.txt --out submission.csv
 ```
 *   **Outputs Generated**:
     *   `submission.csv`: Contains candidate IDs, final blended score, rank, and structured evidence-based markdown explainability text.

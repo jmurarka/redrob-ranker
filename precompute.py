@@ -62,6 +62,11 @@ def main():
     if not (Path(LOCAL_MODEL_PATH) / "model.safetensors").exists():
         _get_model().save(LOCAL_MODEL_PATH)
 
+    print("[precompute] Caching JD embedding...")
+    from talentmind.embedder import embed_single
+    jd_emb_cached = embed_single(jd_text)
+    np.save(str(DATA_DIR / "jd_embedding.npy"), jd_emb_cached)
+
     print("[precompute] Persisting artifacts...")
     np.save(str(DATA_DIR / "candidate_embeddings.npy"), embs)
     with open(DATA_DIR / "candidate_features.pkl", "wb") as f:

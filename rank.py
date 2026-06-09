@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 rank.py — TalentMind AI v2 runtime ranking.
-Usage: python rank.py --candidates candidates.jsonl --out submission.csv
+Usage: python rank.py --candidates candidates.jsonl --jd job_description.txt --out submission.csv
 Requires: data/ directory from precompute.py
 Constraints: ≤5 min, ≤16GB RAM, CPU only, no network.
 """
@@ -18,6 +18,7 @@ from talentmind.config import (
 from talentmind.embedder import embed_single, cosine_top_k
 from talentmind.jd_intelligence import parse_jd, JDProfile
 from talentmind.explainer import generate_reasoning, ScoreBreakdown
+from talentmind.feature_extractor import extract_logistics_features
 
 def compute_candidate_relevance(feat: dict, jd_profile: JDProfile) -> float:
     """Calculates how well a candidate's skills and experience satisfy the JD requirements."""
@@ -67,11 +68,35 @@ def get_percentile(val: float, all_vals: List[float]) -> float:
     count = bisect.bisect_right(sorted_vals, val)
     return (count / len(all_vals)) * 100.0
 
+
+def iter_jsonl(path: str):
+    p = Path(path)
+    opener = __import__("gzip").open if p.suffix == ".gz" else open
+    with opener(p, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if line:
+                yield json.loads(line)
+
+
+def backfill_runtime_features(feats: list[dict], candidates_path: str) -> None:
+    if feats and "logistics_score" in feats[0]:
+        return
+    feats_by_id = {feat["candidate_id"]: feat for feat in feats}
+    for feat in feats:
+        feat["logistics_score"] = 0.60
+        feat["logistics_note"] = "location/logistics not present in precomputed cache"
+    for candidate in iter_jsonl(candidates_path):
+        feat = feats_by_id.get(candidate.get("candidate_id"))
+        if feat:
+            feat.update(extract_logistics_features(candidate))
+
 def main():
     assert Path(LOCAL_MODEL_PATH).exists(), \
         f"Local model not found at {LOCAL_MODEL_PATH}. Run precompute.py first."
     parser = argparse.ArgumentParser()
     parser.add_argument("--candidates", required=True)
+    parser.add_argument("--jd", default="job_description.txt")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     t0 = time.time()
@@ -80,13 +105,19 @@ def main():
     embs = np.load(str(DATA_DIR / "candidate_embeddings.npy"))
     with open(DATA_DIR / "candidate_features.pkl", "rb") as f:
         feats = pickle.load(f)
-    with open(DATA_DIR / "jd_structured.json") as f:
-        jd_struct = json.load(f)
+    backfill_runtime_features(feats, args.candidates)
     print(f"  Pool: {len(feats)} candidates | Embeddings: {embs.shape}")
 
-    print("[rank] Embedding JD...")
-    jd_text = Path("job_description.txt").read_text(encoding="utf-8")
-    jd_emb = embed_single(jd_text)
+    print("[rank] Loading JD embedding...")
+    jd_text = Path(args.jd).read_text(encoding="utf-8")
+    jd_struct = parse_jd(jd_text)
+    jd_emb_path = DATA_DIR / "jd_embedding.npy"
+    if jd_emb_path.exists():
+        jd_emb = np.load(str(jd_emb_path))
+        print("  Using cached JD embedding (fully deterministic)")
+    else:
+        print("  Cache miss — recomputing JD embedding (run precompute.py to fix)")
+        jd_emb = embed_single(jd_text)
 
     weights = WEIGHT_PROFILES.get(
         jd_struct.get("weight_profile", DEFAULT_WEIGHT_PROFILE),
@@ -129,7 +160,8 @@ def main():
     cos_sims = recall_embs @ jd_emb
 
     results = []
-    all_sems, all_careers, all_skills, all_exps, all_behs, all_trusts, all_growths = [], [], [], [], [], [], []
+    all_sems, all_careers, all_skills, all_exps = [], [], [], []
+    all_behs, all_trusts, all_growths, all_logistics = [], [], [], []
     for i, idx in enumerate(idx_list):
         f = feats[idx]
         sem = float((cos_sims[i] + 1.0) / 2.0)
@@ -152,7 +184,8 @@ def main():
             "experience": blended_experience,
             "behavioral": f["behavioral_score"],
             "trust": f["trust_score"],
-            "growth": growth_val
+            "growth": growth_val,
+            "logistics": f.get("logistics_score", 0.60),
         }
 
         weighted_signals = {
@@ -162,7 +195,8 @@ def main():
             "experience": weights["experience"] * blended_experience,
             "behavioral": weights["behavioral"] * f["behavioral_score"],
             "trust": weights["trust"] * f["trust_score"],
-            "growth": weights["growth"] * growth_val
+            "growth": weights["growth"] * growth_val,
+            "logistics": weights["logistics"] * f.get("logistics_score", 0.60),
         }
 
         score = sum(weighted_signals.values())
@@ -176,6 +210,7 @@ def main():
         all_behs.append(f["behavioral_score"])
         all_trusts.append(f["trust_score"])
         all_growths.append(growth_val)
+        all_logistics.append(f.get("logistics_score", 0.60))
 
         results.append((score, f, sem))
 
@@ -200,6 +235,7 @@ def main():
             beh_pct = get_percentile(feat["raw_signals"]["behavioral"], all_behs)
             trust_pct = get_percentile(feat["raw_signals"]["trust"], all_trusts)
             growth_pct = get_percentile(feat["raw_signals"]["growth"], all_growths)
+            logistics_pct = get_percentile(feat["raw_signals"]["logistics"], all_logistics)
             
             # Compute contributions
             total_weighted = sum(feat["weighted_signals"].values())
@@ -210,6 +246,7 @@ def main():
             beh_contrib = (feat["weighted_signals"]["behavioral"] / total_weighted * 100.0) if total_weighted > 0 else 0.0
             trust_contrib = (feat["weighted_signals"]["trust"] / total_weighted * 100.0) if total_weighted > 0 else 0.0
             growth_contrib = (feat["weighted_signals"]["growth"] / total_weighted * 100.0) if total_weighted > 0 else 0.0
+            logistics_contrib = (feat["weighted_signals"]["logistics"] / total_weighted * 100.0) if total_weighted > 0 else 0.0
             
             # Extract evidence
             matched_skills = [s for s in feat.get("candidate_skills", []) if any(rs.lower() in s for rs in jd_profile.required_skills) or any(ps.lower() in s for ps in jd_profile.preferred_skills)]
@@ -238,6 +275,7 @@ def main():
                 behavioral=feat["raw_signals"]["behavioral"],
                 trust=feat["raw_signals"]["trust"],
                 growth=feat["raw_signals"]["growth"],
+                logistics=feat["raw_signals"]["logistics"],
                 semantic_pct=sem_pct,
                 career_pct=career_pct,
                 skill_pct=skill_pct,
@@ -245,6 +283,7 @@ def main():
                 behavioral_pct=beh_pct,
                 trust_pct=trust_pct,
                 growth_pct=growth_pct,
+                logistics_pct=logistics_pct,
                 semantic_contrib=sem_contrib,
                 career_contrib=career_contrib,
                 skill_contrib=skill_contrib,
@@ -252,6 +291,7 @@ def main():
                 behavioral_contrib=beh_contrib,
                 trust_contrib=trust_contrib,
                 growth_contrib=growth_contrib,
+                logistics_contrib=logistics_contrib,
                 matched_skills=matched_skills,
                 promotion_evidence=promotion_evidence,
                 leadership_evidence=leadership_evidence

@@ -23,7 +23,7 @@ SKILL_ONTOLOGY = {
     "embeddings": ["embedding", "sentence-transformer", "dense vector", "cross-encoder"],
     "vector database": ["vector db", "faiss", "qdrant", "pinecone", "weaviate", "milvus", "opensearch", "elasticsearch"],
     "hybrid search": ["bm25", "hybrid retrieval", "sparse dense", "hybrid search"],
-    "rag": ["retrieval-augmented", "rag pipeline", "langchain", "llamaindex"],
+    "rag": ["retrieval-augmented", "rag pipeline", "llamaindex"],
     "ranking eval": ["ndcg", "mrr", "learning to rank", "ltr"],
     "python": ["python"],
     "pytorch": ["pytorch", "torch"],
@@ -66,6 +66,28 @@ SENIORITY_PATTERNS = {
 EXP_RE = re.compile(r"(\d+)[–\-—to]+\s*(\d+)\s*years?", re.IGNORECASE)
 DOMAINS = ["fintech", "saas", "healthcare", "hr-tech", "adtech", "ai", "e-commerce"]
 COMPLIANCE = ["gdpr", "hipaa", "soc2", "pci", "iso27001"]
+NEGATIVE_SECTION_MARKERS = (
+    "things we explicitly do not want",
+    "things we explicitly don't want",
+    "do not want",
+    "disqualifiers",
+    "not a fit",
+)
+PREFERRED_SECTION_MARKERS = (
+    "things we'd like you to have",
+    "things we would like you to have",
+    "nice to have",
+    "preferred",
+    "bonus",
+    "plus",
+)
+REQUIRED_SECTION_MARKERS = (
+    "things you absolutely need",
+    "requirements",
+    "must have",
+    "what you need",
+    "core expertise",
+)
 
 @dataclass
 class JDProfile:
@@ -158,11 +180,25 @@ def extract_requirements(jd_text: str) -> tuple[List[str], List[str]]:
     pref = []
     
     in_preferred_section = False
+    in_negative_section = False
     
     for line in lines:
-        if any(h in line for h in ["preferred", "nice to have", "plus", "bonus", "optional", "highly desired"]):
+        if "final note for the participants" in line:
+            in_negative_section = True
+            in_preferred_section = False
+            continue
+        if any(marker in line for marker in NEGATIVE_SECTION_MARKERS):
+            in_negative_section = True
+            in_preferred_section = False
+            continue
+        if in_negative_section and any(marker in line for marker in ["skills inventory", "things you absolutely need", "on location", "the vibe check", "how to read between the lines"]):
+            in_negative_section = False
+        if in_negative_section:
+            continue
+
+        if any(h in line for h in PREFERRED_SECTION_MARKERS):
             in_preferred_section = True
-        elif any(h in line for h in ["requirements", "qualifications", "must have", "what you need", "experience"]):
+        elif any(h in line for h in REQUIRED_SECTION_MARKERS):
             in_preferred_section = False
             
         for skill, aliases in SKILL_ONTOLOGY.items():
@@ -175,15 +211,15 @@ def extract_requirements(jd_text: str) -> tuple[List[str], List[str]]:
             if not matched_aliases:
                 continue
                 
-            is_pref = in_preferred_section or any(w in line for w in ["preferred", "nice to have", "plus", "bonus", "optional", "desired", "helpful"])
+            is_pref = in_preferred_section or any(w in line for w in ["preferred", "nice to have", "plus", "bonus", "optional", "desired", "helpful", "won't reject"])
             if is_pref:
                 pref.append(skill)
                 pref.extend(matched_aliases)
             else:
                 hard.append(skill)
                 hard.extend(matched_aliases)
-    hard_set = set(hard)
-    pref_set = set(pref) - hard_set
+    pref_set = set(pref)
+    hard_set = set(hard) - pref_set
     return list(hard_set), list(pref_set)
 
 
@@ -238,11 +274,29 @@ def extract_jd_deep_profile(jd_text: str) -> JDProfile:
     tl = jd_text.lower()
 
     # Determine seniority
+    title_match = re.search(r"job description:\s*([^\n]+)", jd_text, re.IGNORECASE)
+    title_text = title_match.group(1).lower() if title_match else "\n".join(jd_text.splitlines()[:8]).lower()
     seniority = "Mid"
-    for level, patterns in SENIORITY_PATTERNS.items():
-        if any(re.search(p, tl) for p in patterns):
-            seniority = level
-            break
+    if re.search(r"\b(senior|sr\.?|lead)\b", title_text):
+        seniority = "Senior"
+    elif re.search(r"\b(principal|staff)\b", title_text):
+        seniority = "Principal"
+    else:
+        positive_text = []
+        in_negative = False
+        for line in jd_text.splitlines():
+            ll = line.lower()
+            if any(marker in ll for marker in NEGATIVE_SECTION_MARKERS):
+                in_negative = True
+            elif in_negative and any(marker in ll for marker in ["on location", "the vibe check", "how to read between the lines", "final note"]):
+                in_negative = False
+            if not in_negative:
+                positive_text.append(line)
+        positive_blob = "\n".join(positive_text).lower()
+        for level, patterns in SENIORITY_PATTERNS.items():
+            if any(re.search(p, positive_blob) for p in patterns):
+                seniority = level
+                break
 
     # Determine experience range
     m = EXP_RE.search(jd_text)

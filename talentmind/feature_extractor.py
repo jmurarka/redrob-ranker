@@ -1,6 +1,7 @@
 from datetime import datetime
 from talentmind.config import (
-    SUBMISSION_DATE, CONSULTING_COMPANIES, TIER_A_SKILLS, TIER_B_SKILLS, TIER_C_SKILLS
+    SUBMISSION_DATE, CONSULTING_COMPANIES, TIER_A_SKILLS, TIER_B_SKILLS,
+    TIER_C_SKILLS, INDIA_PREFERRED, INDIA_ACCEPTABLE
 )
 
 def _days_since(date_str: str) -> int:
@@ -307,6 +308,45 @@ def extract_experience_features(candidate: dict) -> dict:
     return {"experience_score": exp, "years_of_experience": yoe}
 
 
+def extract_logistics_features(candidate: dict) -> dict:
+    profile = candidate.get("profile", {}) or {}
+    signals = candidate.get("redrob_signals") or {}
+    location = str(profile.get("location", "")).lower()
+    willing = bool(signals.get("willing_to_relocate", False))
+    work_mode = str(signals.get("preferred_work_mode", "")).lower()
+
+    in_preferred_city = any(place in location for place in INDIA_PREFERRED)
+    in_india_pool = any(place in location for place in INDIA_ACCEPTABLE)
+    flexible_mode = work_mode in {"hybrid", "flexible", "onsite"}
+
+    if in_preferred_city:
+        score = 1.0
+        note = "preferred India hiring location"
+    elif in_india_pool and willing:
+        score = 0.92
+        note = "India-based and willing to relocate"
+    elif in_india_pool and flexible_mode:
+        score = 0.78
+        note = "India-based with workable hybrid/flexible preference"
+    elif in_india_pool:
+        score = 0.62
+        note = "India-based but relocation preference is weak"
+    elif willing:
+        score = 0.48
+        note = "outside preferred India locations but willing to relocate"
+    else:
+        score = 0.20
+        note = "outside India/preferred locations and not willing to relocate"
+
+    return {
+        "logistics_score": float(score),
+        "location": profile.get("location", ""),
+        "willing_to_relocate": willing,
+        "preferred_work_mode": work_mode,
+        "logistics_note": note,
+    }
+
+
 def extract_all_features(candidate: dict) -> dict:
     f = {}
     f.update(extract_career_features(candidate))
@@ -315,6 +355,7 @@ def extract_all_features(candidate: dict) -> dict:
     f.update(extract_trust_features(candidate))
     f.update(extract_skill_features(candidate))
     f.update(extract_experience_features(candidate))
+    f.update(extract_logistics_features(candidate))
     f["candidate_id"] = candidate["candidate_id"]
     f["current_title"] = candidate.get("profile", {}).get("current_title", "Engineer")
     

@@ -11,8 +11,9 @@ from talentmind.feature_extractor import extract_all_features
 from talentmind.text_builder import build_candidate_text
 from talentmind.embedder import embed_texts, embed_single
 from talentmind.explainer import generate_reasoning
-from talentmind.jd_intelligence import parse_jd
+from talentmind.jd_intelligence import parse_jd, JDProfile
 from talentmind.config import WEIGHT_PROFILES, DEFAULT_WEIGHT_PROFILE
+from rank import compute_candidate_relevance, compute_jd_satisfaction
 
 # Rich Custom CSS for a Premium, Dark-Themed Dashboard
 custom_css = """
@@ -134,6 +135,19 @@ body {
 }
 """
 
+
+def _jd_profile_from_struct(jd_struct: dict) -> JDProfile:
+    profile_keys = {
+        "required_skills", "preferred_skills", "seniority_level", "experience_range",
+        "business_objective", "team_context", "industry", "responsibility_list",
+        "implicit_signals", "team_structure", "responsibility_hierarchy",
+        "industry_context", "implicit_seniority_signals", "hard_requirements",
+        "nice_to_have", "leadership_signals", "responsibility_categories",
+    }
+    profile_args = {key: jd_struct[key] for key in profile_keys if key in jd_struct}
+    return JDProfile(**profile_args)
+
+
 def rank_sample(json_text: str, jd_text: str) -> str:
     if not jd_text.strip():
         return "Error: Job Description cannot be empty."
@@ -142,6 +156,7 @@ def rank_sample(json_text: str, jd_text: str) -> str:
     
     # Parse JD to select weight profile
     jd_struct = parse_jd(jd_text)
+    jd_profile = _jd_profile_from_struct(jd_struct)
     weights = WEIGHT_PROFILES.get(
         jd_struct.get("weight_profile", DEFAULT_WEIGHT_PROFILE),
         WEIGHT_PROFILES[DEFAULT_WEIGHT_PROFILE]
@@ -185,14 +200,36 @@ def rank_sample(json_text: str, jd_text: str) -> str:
     
     for i, feat in enumerate(feats):
         sem = float((cos_sims[i] + 1.0) / 2.0)
+        candidate_relevance = compute_candidate_relevance(feat, jd_profile)
+        jd_satisfaction = compute_jd_satisfaction(feat, jd_profile)
+        combined_match = 0.5 * candidate_relevance + 0.5 * jd_satisfaction
+        blended_skill = float(max(0.0, min(1.0, 0.7 * feat["skill_score"] + 0.3 * combined_match)))
+        blended_experience = float(max(0.0, min(1.0, 0.7 * feat["experience_score"] + 0.3 * combined_match)))
+        growth_val = float(max(0.0, min(1.0, feat.get("growth_score", 0.20))))
         score = (
             weights["semantic"]   * sem                    +
             weights["career"]     * feat["career_score"]   +
-            weights["skill"]      * feat["skill_score"]    +
-            weights["experience"] * feat["experience_score"] +
+            weights["skill"]      * blended_skill          +
+            weights["experience"] * blended_experience     +
             weights["behavioral"] * feat["behavioral_score"] +
-            weights["trust"]      * feat["trust_score"]
+            weights["trust"]      * feat["trust_score"]    +
+            weights["growth"]     * growth_val             +
+            weights["logistics"]  * feat.get("logistics_score", 0.60)
         )
+        feat["raw_signals"] = {
+            "semantic": sem,
+            "career": feat["career_score"],
+            "skill": blended_skill,
+            "experience": blended_experience,
+            "behavioral": feat["behavioral_score"],
+            "trust": feat["trust_score"],
+            "growth": growth_val,
+            "logistics": feat.get("logistics_score", 0.60),
+        }
+        feat["weighted_signals"] = {
+            key: weights[key] * feat["raw_signals"][key]
+            for key in feat["raw_signals"]
+        }
         scored.append((score, feat, sem))
         
     # Sort by score descending, then candidate_id ascending
@@ -269,28 +306,39 @@ def explain_comparison(cand_id_a: str, cand_id_b: str, json_text: str, jd_text: 
 
     # Calculate weight profile
     jd_struct = parse_jd(jd_text)
+    jd_profile = _jd_profile_from_struct(jd_struct)
     weights = WEIGHT_PROFILES.get(
         jd_struct.get("weight_profile", DEFAULT_WEIGHT_PROFILE),
         WEIGHT_PROFILES[DEFAULT_WEIGHT_PROFILE]
     )
 
     # Scores calculation
+    a_match = 0.5 * compute_candidate_relevance(feat_a, jd_profile) + 0.5 * compute_jd_satisfaction(feat_a, jd_profile)
+    b_match = 0.5 * compute_candidate_relevance(feat_b, jd_profile) + 0.5 * compute_jd_satisfaction(feat_b, jd_profile)
+    skill_a = float(max(0.0, min(1.0, 0.7 * feat_a["skill_score"] + 0.3 * a_match)))
+    skill_b = float(max(0.0, min(1.0, 0.7 * feat_b["skill_score"] + 0.3 * b_match)))
+    exp_a = float(max(0.0, min(1.0, 0.7 * feat_a["experience_score"] + 0.3 * a_match)))
+    exp_b = float(max(0.0, min(1.0, 0.7 * feat_b["experience_score"] + 0.3 * b_match)))
     score_a = (
         weights["semantic"]   * sem_a                    +
         weights["career"]     * feat_a["career_score"]   +
-        weights["skill"]      * feat_a["skill_score"]    +
-        weights["experience"] * feat_a["experience_score"] +
+        weights["skill"]      * skill_a                  +
+        weights["experience"] * exp_a                    +
         weights["behavioral"] * feat_a["behavioral_score"] +
-        weights["trust"]      * feat_a["trust_score"]
+        weights["trust"]      * feat_a["trust_score"]    +
+        weights["growth"]     * feat_a.get("growth_score", 0.20) +
+        weights["logistics"]  * feat_a.get("logistics_score", 0.60)
     )
 
     score_b = (
         weights["semantic"]   * sem_b                    +
         weights["career"]     * feat_b["career_score"]   +
-        weights["skill"]      * feat_b["skill_score"]    +
-        weights["experience"] * feat_b["experience_score"] +
+        weights["skill"]      * skill_b                  +
+        weights["experience"] * exp_b                    +
         weights["behavioral"] * feat_b["behavioral_score"] +
-        weights["trust"]      * feat_b["trust_score"]
+        weights["trust"]      * feat_b["trust_score"]    +
+        weights["growth"]     * feat_b.get("growth_score", 0.20) +
+        weights["logistics"]  * feat_b.get("logistics_score", 0.60)
     )
 
     # Growth potentials
@@ -362,10 +410,10 @@ def explain_comparison(cand_id_a: str, cand_id_b: str, json_text: str, jd_text: 
                     <td>100%</td>
                 </tr>
                 <tr>
-                    <td><strong>Growth Potential (Auxiliary)</strong></td>
+                    <td><strong>Growth Potential</strong></td>
                     <td><span class="{badge_class_a}">{growth_a}</span></td>
                     <td><span class="{badge_class_b}">{growth_b}</span></td>
-                    <td>N/A</td>
+                    <td>{weights.get("growth", 0)*100:.0f}%</td>
                 </tr>
                 <tr>
                     <td>Semantic Similarity</td>
@@ -402,6 +450,12 @@ def explain_comparison(cand_id_a: str, cand_id_b: str, json_text: str, jd_text: 
                     <td>{feat_a["trust_score"]:.4f}</td>
                     <td>{feat_b["trust_score"]:.4f}</td>
                     <td>{weights.get("trust", 0)*100:.0f}%</td>
+                </tr>
+                <tr>
+                    <td>Logistics Fit</td>
+                    <td>{feat_a.get("logistics_score", 0.60):.4f}</td>
+                    <td>{feat_b.get("logistics_score", 0.60):.4f}</td>
+                    <td>{weights.get("logistics", 0)*100:.0f}%</td>
                 </tr>
             </tbody>
         </table>
