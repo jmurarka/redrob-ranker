@@ -200,6 +200,28 @@ def main():
         }
 
         score = sum(weighted_signals.values())
+
+        # ── Availability penalty ──────────────────────────────────────────────
+        # Applied as a multiplier AFTER weighted scoring so it can push
+        # unavailable candidates below available ones regardless of skill match.
+        # Thresholds are grounded in the signals doc: >90d notice and >180d
+        # inactive are explicitly called hireability red flags for a founding hire.
+        _inactive = f.get("days_inactive", 0)
+        _notice   = f.get("notice_period_days", 30)
+        _rr       = f.get("recruiter_response_rate", 1.0)
+
+        _avail_multiplier = 1.0
+        if _notice > 90:
+            _avail_multiplier *= 0.88   # long notice: meaningful but not fatal
+        if _inactive > 180:
+            _avail_multiplier *= 0.82   # cold candidate: harder to engage
+        if _rr < 0.10:
+            _avail_multiplier *= 0.78   # historically unresponsive: high drop risk
+
+        score *= _avail_multiplier
+        f["availability_multiplier"] = round(_avail_multiplier, 4)
+        # ─────────────────────────────────────────────────────────────────────
+
         f["raw_signals"] = raw_signals
         f["weighted_signals"] = weighted_signals
 
@@ -215,6 +237,21 @@ def main():
         results.append((score, f, sem))
 
     results.sort(key=lambda x: (-x[0], x[1]["candidate_id"]))
+
+    # Widen score distribution so top candidates are clearly separated.
+    # Sort order is already locked — this only rescales the values.
+    # Maps raw scores to [0.30, 0.95] so rank-1 reads ~0.95 and rank-100 ~0.30,
+    # giving NDCG a cleaner signal and making the CSV human-readable.
+    _raw = [r[0] for r in results]
+    _mn, _mx = min(_raw), max(_raw)
+    _spread = _mx - _mn + 1e-9
+    results = [
+        (round(0.30 + 0.65 * (s - _mn) / _spread, 6), f, sem)
+        for s, f, sem in results
+    ]
+    # Re-sort after rescaling to preserve monotonicity guarantee below
+    results.sort(key=lambda x: (-x[0], x[1]["candidate_id"]))
+
     top100 = results[:100]
 
     scores = [round(r[0], 6) for r in top100]

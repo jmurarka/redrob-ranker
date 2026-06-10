@@ -98,12 +98,22 @@ def _title_case_role(text: str) -> str:
 
 
 def _concern(f: dict) -> str:
-    if f.get("notice_period_days", 30) > 90:
-        return f"notice period {f['notice_period_days']} days"
-    if f.get("days_inactive", 0) > 180:
-        return "low recent activity - availability uncertain"
-    if f.get("recruiter_response_rate", 0.5) < 0.20:
-        return "low recruiter response rate"
+    notice   = f.get("notice_period_days", 30)
+    inactive = f.get("days_inactive", 0)
+    rr       = f.get("recruiter_response_rate", 0.5)
+    # Availability is the hardest constraint for a founding hire — surface first
+    if notice > 90 and inactive > 180:
+        return f"notice period {notice}d and {inactive}d platform inactivity"
+    if notice > 90:
+        return f"notice period {notice} days"
+    if inactive > 180:
+        return f"{inactive} days platform inactivity"
+    # Responsiveness
+    if rr < 0.10:
+        return f"recruiter response rate {int(rr*100)}% - high drop-off risk"
+    if rr < 0.20:
+        return f"recruiter response rate {int(rr*100)}%"
+    # Logistics / background / seniority
     if f.get("logistics_score", 1.0) < 0.50:
         return f.get("logistics_note", "location/logistics fit is weak")
     if f.get("consulting_fraction", 0) > 0.60:
@@ -122,43 +132,79 @@ def generate_reasoning(
 ) -> str:
     """
     Generates evidence-backed reasoning strings for CSV review.
+    Tone is calibrated to rank so top picks read as confident endorsements
+    and lower picks honestly explain why they're included and what limits them.
     """
-    if breakdown is None:
-        title = f.get("current_title", "Engineer")
-        yoe = f.get("years_of_experience", 0)
-        note = f.get("top_career_note", "")
-        prod = f.get("has_production_evidence", False)
-        growth = f.get("growth_potential", "MEDIUM")
-        skill = f.get("top_skill_name", "")
-        concern = _concern(f)
+    title   = f.get("current_title", "Engineer")
+    yoe     = f.get("years_of_experience", 0)
+    note    = f.get("top_career_note", "")
+    prod    = f.get("has_production_evidence", False)
+    growth  = f.get("growth_potential", "MEDIUM")
+    skill   = f.get("top_skill_name", "")
+    concern = _concern(f)
+    avail_ok = f.get("availability_multiplier", 1.0) >= 0.99
 
+    skill_phrase = f"with {skill} expertise" if skill else ""
+    prod_phrase  = " and production deployment evidence" if prod else ""
+
+    if breakdown is None:
         weighted = f.get("weighted_signals")
-        raw = f.get("raw_signals")
+        raw      = f.get("raw_signals")
 
         if weighted and raw and score > 0:
-            contributions = {k: (v / score) * 100 for k, v in weighted.items()}
+            contributions  = {k: (v / score) * 100 for k, v in weighted.items()}
             sorted_contrib = sorted(contributions.items(), key=lambda x: x[1], reverse=True)
             top1_name, top1_pct = sorted_contrib[0]
             top2_name, top2_pct = sorted_contrib[1]
 
-            skill_phrase = f"with {skill} expertise" if skill else ""
-            primary = (
-                f"Ranked #{rank} (Score: {score:.3f}). Driven by "
-                f"{top1_name} ({top1_pct:.1f}% contribution) and "
-                f"{top2_name} ({top2_pct:.1f}% contribution). "
-                f"{yoe:.0f}-year {title} {skill_phrase}."
-            )
-            secondary = f"Growth Potential: {growth.capitalize()}."
-            if concern:
-                secondary += f" Note: {concern}."
+            # Rank-aware primary sentence
+            if rank <= 10:
+                primary = (
+                    f"Top-{rank} pick. {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}. "
+                    f"Score driven by {top1_name} ({top1_pct:.1f}%) and {top2_name} ({top2_pct:.1f}%)."
+                    + (f" {note}." if note else "")
+                )
+            elif rank <= 30:
+                primary = (
+                    f"Ranked #{rank}. Strong fit — {yoe:.0f}-year {title} {skill_phrase}. "
+                    f"Led by {top1_name} ({top1_pct:.1f}%) and {top2_name} ({top2_pct:.1f}%)."
+                    + (f" {note}." if note else "")
+                )
+            elif rank <= 60:
+                primary = (
+                    f"Ranked #{rank}. Solid secondary candidate — {yoe:.0f}-year {title} {skill_phrase}. "
+                    f"Primary signal: {top1_name} ({top1_pct:.1f}%)."
+                    + (f" {note}." if note else "")
+                )
+            else:
+                limiting = concern if concern else "profile below primary threshold on multiple signals"
+                primary = (
+                    f"Ranked #{rank}. Included for {top1_name} match ({top1_pct:.1f}%); "
+                    f"limiting factor: {limiting}. "
+                    f"{yoe:.0f}-year {title} {skill_phrase}."
+                )
+
+            # Rank-aware secondary (growth + concern framing)
+            if rank <= 10:
+                secondary = f"Growth: {growth.capitalize()}."
+                if concern:
+                    secondary += f" Caveat: {concern}."
+            elif rank <= 30:
+                secondary = f"Growth Potential: {growth.capitalize()}."
+                if concern:
+                    secondary += f" Note: {concern}."
+            else:
+                if concern:
+                    secondary = f"Key limitation: {concern}. Growth: {growth.capitalize()}."
+                else:
+                    secondary = f"Growth Potential: {growth.capitalize()}."
+
             return _clean_reasoning_text(primary + " " + secondary).strip()[:500]
 
-        skill_phrase = f"with {skill} expertise" if skill else ""
-
+        # Fallback (no weighted_signals on feat dict)
         if rank <= 10:
-            prod_phrase = " (production deployment evidence)" if prod else ""
             primary = (
-                f"{yoe:.0f}-year {title} {skill_phrase}{prod_phrase}"
+                f"Top-{rank} pick. {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}"
                 + (f"; {note}" if note else "")
                 + "; strong JD alignment."
             )
@@ -167,19 +213,29 @@ def generate_reasoning(
         elif rank <= 60:
             primary = f"{yoe:.0f}-year {title}; moderate fit" + (f" - {note}" if note else "") + "."
         else:
-            primary = f"{yoe:.0f}-year {title}; adjacent skills present, below primary threshold."
+            limiting = concern if concern else "profile below primary threshold on multiple signals"
+            primary  = f"{yoe:.0f}-year {title}; included for skill match. Limiting factor: {limiting}."
 
-        secondary = f"Growth Potential: {growth.capitalize()}."
-        if concern:
-            secondary += f" Note: {concern}."
+        if rank <= 10:
+            secondary = f"Growth: {growth.capitalize()}."
+            if concern:
+                secondary += f" Caveat: {concern}."
+        elif rank <= 30:
+            secondary = f"Growth Potential: {growth.capitalize()}."
+            if concern:
+                secondary += f" Note: {concern}."
+        else:
+            secondary = (f"Key limitation: {concern}. " if concern else "") + f"Growth: {growth.capitalize()}."
+
         return _clean_reasoning_text(primary + " " + secondary).strip()[:500]
 
-    sem_top = max(1, int(101.0 - breakdown.semantic_pct))
+    # ── Breakdown path (full ScoreBreakdown object) ──────────────────────────
+    sem_top    = max(1, int(101.0 - breakdown.semantic_pct))
     career_top = max(1, int(101.0 - breakdown.career_pct))
 
     skills_clean = []
-    for skill in breakdown.matched_skills:
-        formatted = _display_skill(skill)
+    for s in breakdown.matched_skills:
+        formatted = _display_skill(s)
         if formatted not in skills_clean:
             skills_clean.append(formatted)
     skills_str = ", ".join(skills_clean[:3]) if skills_clean else "required AI/search stack"
@@ -190,19 +246,39 @@ def generate_reasoning(
         else "relevant ML/search roles"
     )
 
-    primary = f"Top {sem_top}% semantic similarity and top {career_top}% career trajectory."
-    if breakdown.promotion_evidence:
-        primary += f" Promotion history: {promo_str}."
-    primary += f" Matched skills: {skills_str}."
+    if rank <= 10:
+        primary = (
+            f"Top-{rank} pick. Top {sem_top}% semantic match, top {career_top}% career trajectory. "
+            f"Matched skills: {skills_str}."
+        )
+    elif rank <= 30:
+        primary = (
+            f"Ranked #{rank}. Top {sem_top}% semantic similarity and top {career_top}% career trajectory. "
+            f"Matched skills: {skills_str}."
+        )
+    else:
+        primary = (
+            f"Ranked #{rank}. Semantic top {sem_top}%, career top {career_top}%. "
+            f"Skills: {skills_str}."
+        )
 
+    if breakdown.promotion_evidence:
+        primary += f" Promotion trail: {promo_str}."
     if breakdown.leadership_evidence:
         primary += f" Leadership: {_clean_reasoning_text(breakdown.leadership_evidence[0])}."
 
     growth_potential = f.get("growth_potential", "MEDIUM").capitalize()
-    secondary = f"Growth Potential: {growth_potential}."
-    concern = _concern(f)
-    if concern:
-        secondary += f" Note: {concern}."
+
+    if rank <= 10:
+        secondary = f"Growth: {growth_potential}."
+        if concern:
+            secondary += f" Caveat: {concern}."
+    elif rank <= 30:
+        secondary = f"Growth Potential: {growth_potential}."
+        if concern:
+            secondary += f" Note: {concern}."
+    else:
+        secondary = (f"Key limitation: {concern}. " if concern else "") + f"Growth: {growth_potential}."
 
     return _clean_reasoning_text(primary + " " + secondary).strip()[:500]
 
