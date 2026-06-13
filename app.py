@@ -483,7 +483,7 @@ if sample_candidates_file.exists():
 # Build the blocks-based UI
 with gr.Blocks(css=custom_css, title="TalentMind AI v2 Dashboard") as demo:
     # Header Banner
-    with gr.Div(elem_classes="header-container"):
+    with gr.Group(elem_classes="header-container"):
         gr.HTML('<h1 class="header-title">🧠 TalentMind AI v2</h1>')
         gr.HTML('<p class="header-subtitle">Explainable Multi-Signal Candidate Matcher & Recruiter Sandbox</p>')
         

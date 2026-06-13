@@ -1,17 +1,17 @@
-team_name: "TODO_REGISTERED_TEAM_NAME"
+team_name: "NYRA"
 
 primary_contact:
-  name: "TODO_PRIMARY_CONTACT_NAME"
-  email: "TODO_PRIMARY_CONTACT_EMAIL"
-  phone: "TODO_PRIMARY_CONTACT_PHONE"
+  name: "JHANVI MURARKA"
+  email: "jhanvimurarka@gmail.com"
+  phone: "+91 8100114377"
 
 team_members:
-  - name: "TODO_TEAM_MEMBER_NAME"
-    email: "TODO_TEAM_MEMBER_EMAIL"
+  - name: "JHANVI MURARKA"
+    email: "jhanvimurarka@gmail.com"
     role: "ML Engineer"
 
 github_repo: "https://github.com/jmurarka/redrob-ranker"
-sandbox_link: "TODO_HOSTED_SANDBOX_URL"
+sandbox_link: "https://huggingface.co/spaces/jmurarka/redrob-ranker-sandbox"
 reproduce_command: "python rank.py --candidates candidates.jsonl --jd job_description.txt --out submission.csv"
 
 compute:

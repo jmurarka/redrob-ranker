@@ -160,7 +160,7 @@ def generate_reasoning(
             # Rank-aware primary sentence
             if rank <= 10:
                 primary = (
-                    f"Top-{rank} pick. {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}. "
+                    f"Top-{rank} pick (Ranked #{rank}). {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}. "
                     f"Score driven by {top1_name} ({top1_pct:.1f}%) and {top2_name} ({top2_pct:.1f}%)."
                     + (f" {note}." if note else "")
                 )
@@ -186,16 +186,16 @@ def generate_reasoning(
 
             # Rank-aware secondary (growth + concern framing)
             if rank <= 10:
-                secondary = f"Growth: {growth.capitalize()}."
+                secondary = f"Growth Potential: {growth.capitalize()}."
                 if concern:
-                    secondary += f" Caveat: {concern}."
+                    secondary += f" Note: {concern}."
             elif rank <= 30:
                 secondary = f"Growth Potential: {growth.capitalize()}."
                 if concern:
                     secondary += f" Note: {concern}."
             else:
                 if concern:
-                    secondary = f"Key limitation: {concern}. Growth: {growth.capitalize()}."
+                    secondary = f"Note: {concern}. Growth Potential: {growth.capitalize()}."
                 else:
                     secondary = f"Growth Potential: {growth.capitalize()}."
 
@@ -204,7 +204,7 @@ def generate_reasoning(
         # Fallback (no weighted_signals on feat dict)
         if rank <= 10:
             primary = (
-                f"Top-{rank} pick. {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}"
+                f"Top-{rank} pick (Ranked #{rank}). {yoe:.0f}-year {title} {skill_phrase}{prod_phrase}"
                 + (f"; {note}" if note else "")
                 + "; strong JD alignment."
             )
@@ -217,15 +217,15 @@ def generate_reasoning(
             primary  = f"{yoe:.0f}-year {title}; included for skill match. Limiting factor: {limiting}."
 
         if rank <= 10:
-            secondary = f"Growth: {growth.capitalize()}."
+            secondary = f"Growth Potential: {growth.capitalize()}."
             if concern:
-                secondary += f" Caveat: {concern}."
+                secondary += f" Note: {concern}."
         elif rank <= 30:
             secondary = f"Growth Potential: {growth.capitalize()}."
             if concern:
                 secondary += f" Note: {concern}."
         else:
-            secondary = (f"Key limitation: {concern}. " if concern else "") + f"Growth: {growth.capitalize()}."
+            secondary = (f"Note: {concern}. " if concern else "") + f"Growth Potential: {growth.capitalize()}."
 
         return _clean_reasoning_text(primary + " " + secondary).strip()[:500]
 
@@ -248,7 +248,7 @@ def generate_reasoning(
 
     if rank <= 10:
         primary = (
-            f"Top-{rank} pick. Top {sem_top}% semantic match, top {career_top}% career trajectory. "
+            f"Top-{rank} pick (Ranked #{rank}). Top {sem_top}% semantic similarity. Top {career_top}% career trajectory. "
             f"Matched skills: {skills_str}."
         )
     elif rank <= 30:
@@ -270,15 +270,15 @@ def generate_reasoning(
     growth_potential = f.get("growth_potential", "MEDIUM").capitalize()
 
     if rank <= 10:
-        secondary = f"Growth: {growth_potential}."
+        secondary = f"Growth Potential: {growth_potential}."
         if concern:
-            secondary += f" Caveat: {concern}."
+            secondary += f" Note: {concern}."
     elif rank <= 30:
         secondary = f"Growth Potential: {growth_potential}."
         if concern:
             secondary += f" Note: {concern}."
     else:
-        secondary = (f"Key limitation: {concern}. " if concern else "") + f"Growth: {growth_potential}."
+        secondary = (f"Note: {concern}. " if concern else "") + f"Growth Potential: {growth_potential}."
 
     return _clean_reasoning_text(primary + " " + secondary).strip()[:500]
 
