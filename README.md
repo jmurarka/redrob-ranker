@@ -18,7 +18,7 @@ graph TD
     classDef runtime fill:#bbf,stroke:#333,stroke-width:2px;
     classDef storage fill:#ffb,stroke:#333,stroke-width:2px;
     
-    subgraph Phase1 [PHASE 1: Offline Precomputation (Allowed: GPU/CPU, Web, Time)]
+    subgraph Phase1 ["PHASE 1: Offline Precomputation (Allowed: GPU/CPU, Web, Time)"]
         C[candidates.jsonl] --> QA[Layer 0 QA Filter: Honeypot & Integrity Checks]
         QA -->|Valid Candidate| FE[Feature Extractor: Career Trajectory & Skill Metrics]
         QA -->|Invalid Candidate| RJ[Reject/Filter Out]
@@ -26,13 +26,13 @@ graph TD
         SE --> PC[Precompute Output Serializer]
     end
 
-    subgraph Storage [Cached Data Structures]
+    subgraph Storage ["Cached Data Structures"]
         PC --> F_PKL[candidate_features.pkl]
         PC --> E_NPY[candidate_embeddings.npy]
         PC --> I_JSON[clean_candidate_ids.json]
     end
     
-    subgraph Phase2 [PHASE 2: Online Reranking Runtime (Constraints: CPU-only, 100% Offline, <=5min)]
+    subgraph Phase2 ["PHASE 2: Online Reranking Runtime (Constraints: CPU-only, 100% Offline, <=5min)"]
         JD[Raw Job Description Text] --> OE[Layer 7: Recruiter Ontology JD Profile Extractor]
         OE --> JD_P[JDProfile Object]
         
@@ -129,12 +129,12 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph CandidateToJD [Candidate-to-JD Match (Job Satisfaction)]
+    subgraph CandidateToJD ["Candidate-to-JD Match (Job Satisfaction)"]
         C1[Current Title Seniority] -->|Level Match| S1[Seniority Fit]
         C2[Career Specialized Consistency] -->|Role Alignment| S2[Career Focus Fit]
     end
     
-    subgraph JDToCandidate [JD-to-Candidate Match (Candidate Relevance)]
+    subgraph JDToCandidate ["JD-to-Candidate Match (Candidate Relevance)"]
         J1[Required Hard Skills] -->|70% Weight| R1[Skill Match]
         J2[Preferred Nice-to-Have Skills] -->|30% Weight| R1
         J3[Target YOE Range] -->|Normal Distribution| R2[Experience Fit]
